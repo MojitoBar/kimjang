@@ -1,0 +1,9 @@
+node_modules
+dist
+screenshots/*.png
+art/**/*.png
+!art/v2/sheet_expressions.png
+screenshots/
+.DS_Store
+art/**/*.txt
+art/**/*.log
