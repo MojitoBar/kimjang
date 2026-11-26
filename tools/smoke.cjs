@@ -10,7 +10,7 @@ async function run(browser, vp) {
   const errors = [];
   page.on('console', (m) => { if (m.type() === 'error' && !/Failed to load resource|ERR_|fonts/.test(m.text())) errors.push(m.text()); });
   page.on('pageerror', (e) => errors.push(String(e)));
-  const shot = (n) => page.screenshot({ path: `screenshots/k8-${w}-${n}.png` });
+  const shot = (n) => page.screenshot({ path: `screenshots/k9-${w}-${n}.png` });
   const audit = async (name, btnSel) => {
     const r = await page.evaluate((sel) => {
       const de = document.documentElement;
@@ -160,9 +160,37 @@ async function run(browser, vp) {
   await page.locator('.book-back').click();
   await page.waitForSelector('.result');
   check(await page.evaluate(() => !document.querySelector('.res-scene')), `${w} 돌아가기로 판정 화면 복귀`);
+  const savedResult = await page.evaluate(() => window.__kj.get().round.result);
   await page.locator('.res-again').click();
   await page.waitForSelector('.order');
   check((await R()).phase === 'order', `${w} 한 판 더로 주문 화면`);
+  // ---- 판마다 선반 순서·손님이 바뀜 ----
+  const snap = () => page.evaluate(() => { const r = window.__kj.get().round; return { cid: r.customerId, shelf: r.shelf.join(',') }; });
+  let prevSnap = await snap();
+  const shelves = [prevSnap.shelf];
+  let allChanged = true;
+  for (let i = 0; i < 3; i++) {
+    await page.evaluate((res) => { window.__kj.set({ result: res }); window.__kj.go('result'); }, savedResult);
+    await page.waitForSelector('.result'); await page.waitForTimeout(300);
+    await page.click('.res-scene'); await page.waitForTimeout(900);
+    await page.locator('.res-again').click(); await page.waitForSelector('.order');
+    const cur = await snap();
+    if (cur.cid === prevSnap.cid) allChanged = false;
+    shelves.push(cur.shelf);
+    prevSnap = cur;
+  }
+  check(allChanged, `${w} 한 판 더를 3번 눌러도 매번 다른 손님`);
+  check(new Set(shelves).size > 1, `${w} 판마다 양념 선반 순서가 달라짐 (${new Set(shelves).size}/${shelves.length}가지)`);
+  await page.click('.order .btn'); await page.waitForSelector('.salt');
+  await page.locator('.salt .btn-green').click(); await page.waitForSelector('.mix');
+  const cellIds = await page.evaluate(() => [...document.querySelectorAll('.shelf .cell')].map((c) => c.dataset.id).join(','));
+  check(cellIds === (await snap()).shelf, `${w} 화면의 선반 칸 순서가 판 상태와 같음`);
+  await page.click('.cell[data-id=garlic]'); await page.waitForTimeout(700);
+  await page.evaluate(() => window.__kj.go('mix'));
+  await page.waitForSelector('.mix');
+  check(await page.evaluate(() => [...document.querySelectorAll('.shelf .cell')].map((c) => c.dataset.id).join(',')) === cellIds, `${w} 재료를 넣고 화면을 다시 그려도 순서 그대로`);
+  await page.evaluate(() => window.__kj.go('order'));
+  await page.waitForSelector('.order');
   // ---- 건전지 판 (안 문지르고 통과) ----
   await page.click('.order .btn'); await page.waitForSelector('.salt');
   await page.locator('.salt .btn-green').click(); await page.waitForSelector('.mix');
@@ -209,7 +237,7 @@ async function guideFlow(browser, vp) {
   const errors = [];
   page.on('console', (m) => { if (m.type() === 'error' && !/Failed to load resource|ERR_|fonts/.test(m.text())) errors.push(m.text()); });
   page.on('pageerror', (e) => errors.push(String(e)));
-  const shot = (n) => page.screenshot({ path: `screenshots/k8-${w}-${n}.png` });
+  const shot = (n) => page.screenshot({ path: `screenshots/k9-${w}-${n}.png` });
   const toTitle = async (url) => {
     await page.goto(url);
     await page.waitForSelector('.loading'); await page.click('.loading'); await page.waitForSelector('.title');
@@ -291,6 +319,7 @@ async function guideFlow(browser, vp) {
   check(doneSalt, `${w} salt 화살표를 따라 절이기를 마침`);
   await page.waitForSelector('.mix'); await page.waitForTimeout(500);
   await guideLine('mix');
+  await page.evaluate(() => { const sh = document.querySelector('.shelf'); sh.scrollTop = 0; sh.dispatchEvent(new Event('scroll')); });
   const mx = await page.evaluate(() => {
     const sh = document.querySelector('.shelf'); const more = document.querySelector('.shelf-more');
     const wants = [...document.querySelectorAll('.fbar-want')].map((e) => +e.dataset.want);
@@ -301,7 +330,7 @@ async function guideFlow(browser, vp) {
     check(mx.moreVisible, `${w} 선반이 넘치면 "더 있다" 표시`);
     await page.evaluate(() => { const s = document.querySelector('.shelf'); s.scrollTop = s.scrollHeight; s.dispatchEvent(new Event('scroll')); });
     check(await page.evaluate(() => document.querySelector('.shelf-more').hidden), `${w} 끝까지 내리면 표시가 사라짐`);
-    await page.evaluate(() => { document.querySelector('.shelf').scrollTop = 0; document.querySelector('.shelf').dispatchEvent(new Event('scroll')); });
+    await page.evaluate(() => { const sh = document.querySelector('.shelf'); sh.scrollTop = 0; sh.dispatchEvent(new Event('scroll')); const c = sh.querySelector('.cell[data-id=gochugaru]'); sh.scrollTop = Math.max(0, c.offsetTop - 56); sh.dispatchEvent(new Event('scroll')); });
   }
   await shot('first-mix');
   a = await arrow();
@@ -378,7 +407,7 @@ async function title2x(browser) {
   await page.waitForSelector('.loading'); await page.click('.loading'); await page.waitForSelector('.title');
   await page.evaluate(() => document.fonts.ready);
   await page.waitForTimeout(900);
-  await page.screenshot({ path: 'screenshots/k8-390-title@2x.png' });
+  await page.screenshot({ path: 'screenshots/k9-390-title@2x.png' });
   const t = await page.evaluate(() => { const e = document.querySelector('.title-name, .title-logo'); const r = e.getBoundingClientRect(); const s = document.querySelector('.stage').getBoundingClientRect(); const b = document.querySelector('.title-art .burst').getBoundingClientRect(); const a = document.querySelector('.title-art').getBoundingClientRect(); return { fit: r.left >= s.left && r.right <= s.right && e.scrollWidth <= e.clientWidth + 1, lines: e.tagName === 'IMG' ? 1 : Math.round(r.height / parseFloat(getComputedStyle(e).lineHeight)), burstIn: b.left >= a.left && b.right <= a.right && b.top >= a.top && b.bottom <= a.bottom }; });
   check(t.fit && t.lines === 1, `390 타이틀 제목 한 줄·폭 안 (${t.lines}줄)`);
   check(t.burstIn, '390 since 어제 딱지가 그림 틀 안');
@@ -390,7 +419,7 @@ async function title2x(browser) {
   try {
     await title2x(browser);
     for (const vp of [{ width: 390, height: 844 }, { width: 1280, height: 800 }]) { await run(browser, vp); await guideFlow(browser, vp); }
-  } catch (e) { check(false, `예외 ${e.message.split('\n')[0]}`); }
+  } catch (e) { check(false, `예외 ${e.stack.split('\n').slice(0, 4).join(' | ')}`); }
   console.log(`${pass}/${total} 통과`);
   process.exit(pass === total ? 0 : 1);
 })();

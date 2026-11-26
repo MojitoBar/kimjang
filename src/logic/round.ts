@@ -1,5 +1,5 @@
 import { CUSTOMERS } from '../data/customers';
-import { getIngredient, MAX_INGREDIENTS } from '../data/ingredients';
+import { getIngredient, INGREDIENTS, MAX_INGREDIENTS } from '../data/ingredients';
 import { judge } from './judge';
 import type { Customer, JudgeResult } from './types';
 
@@ -9,6 +9,8 @@ export type Phase = (typeof PHASES)[number];
 export interface RoundState {
   phase: Phase;
   customerId: string;
+  /** 이번 판 양념 선반에 놓는 재료 id 순서 */
+  shelf: string[];
   salt: number;
   ingredients: string[];
   rub: number;
@@ -20,10 +22,39 @@ export function pickCustomer(rng: () => number): Customer {
   return CUSTOMERS[Math.min(CUSTOMERS.length - 1, Math.floor(rng() * CUSTOMERS.length))];
 }
 
+/** Fisher-Yates. 원본은 건드리지 않는다. */
+export function shuffle<T>(items: readonly T[], rng: () => number): T[] {
+  const a = [...items];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.min(i, Math.floor(rng() * (i + 1)));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+export interface CustomerBag {
+  /** 아직 안 나온 손님 id (앞에서부터 꺼낸다) */
+  bag: string[];
+  /** 방금 나온 손님 id */
+  last: string | null;
+}
+
+/** 섞은 주머니에서 한 명씩 꺼낸다. 주머니가 비면 다시 섞되 첫 손님이 직전 손님이면 뒤로 보낸다. */
+export function drawCustomer(state: CustomerBag, rng: () => number): { id: string; state: CustomerBag } {
+  let bag = state.bag;
+  if (bag.length === 0) {
+    bag = shuffle(CUSTOMERS.map((c) => c.id), rng);
+    if (bag.length > 1 && bag[0] === state.last) bag = [...bag.slice(1), bag[0]];
+  }
+  const [id, ...rest] = bag;
+  return { id, state: { bag: rest, last: id } };
+}
+
 export function newRound(rng: () => number, customerId?: string): RoundState {
   return {
     phase: 'order',
     customerId: customerId ?? pickCustomer(rng).id,
+    shelf: shuffle(INGREDIENTS.map((i) => i.id), rng),
     salt: 0.5,
     ingredients: [],
     rub: 0,

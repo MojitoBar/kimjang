@@ -1,6 +1,6 @@
 import { ARROW_COPY, FLAVOR_LABEL, MIX_COPY, MIX_UI } from '../../data/copy';
 import { CUSTOMERS, getCustomer } from '../../data/customers';
-import { getIngredient, INGREDIENTS, MAX_INGREDIENTS } from '../../data/ingredients';
+import { getIngredient, MAX_INGREDIENTS } from '../../data/ingredients';
 import { flavorSum } from '../../logic/judge';
 import { addIngredient, removeIngredient } from '../../logic/round';
 import { FLAVORS } from '../../logic/types';
@@ -48,7 +48,17 @@ register('mix', (root) => {
   const syncMore = () => {
     more.hidden = shelf.scrollTop + shelf.clientHeight >= shelf.scrollHeight - 6;
   };
-  shelf.addEventListener('scroll', syncMore);
+  let aimCell: HTMLElement | null = null;
+  const followCell = () => {
+    if (!ptr || !aimCell) return;
+    const sr = shelf.getBoundingClientRect();
+    const cr = aimCell.getBoundingClientRect();
+    ptr.update(cr.top - sr.top >= 40 && cr.bottom <= sr.bottom + 1);
+  };
+  shelf.addEventListener('scroll', () => {
+    syncMore();
+    followCell();
+  });
   const screen = root.closest('.screen') as HTMLElement;
   let ptr: Pointer | null = null;
   let ready = false;
@@ -59,10 +69,12 @@ register('mix', (root) => {
     if (hasGochu === aimedFor) return;
     aimedFor = hasGochu;
     ptr?.clear();
+    aimCell = null;
     const cell = cells.get('gochugaru');
     shelf.classList.toggle('arrow-room', !hasGochu && !!cell);
     if (!hasGochu && cell) {
-      cell.scrollIntoView({ block: 'nearest' });
+      shelf.scrollTop = Math.max(0, cell.offsetTop - 56);
+      aimCell = cell;
       ptr = pointAt(screen, cell, '.cell[data-id=gochugaru]', ARROW_COPY.gochugaru, 6);
     } else {
       ptr = pointAt(screen, screen.querySelector('.mix .actions .btn') as HTMLElement, '.mix .actions .btn', ARROW_COPY.mixDone);
@@ -138,7 +150,7 @@ register('mix', (root) => {
     });
   }
 
-  for (const ing of INGREDIENTS) {
+  for (const ing of app.round.shelf.map((id) => getIngredient(id)!)) {
     let timer = 0;
     let longPressed = false;
     const cell = h('div', { class: `cell ${ing.kind}`, role: 'button', tabindex: '0', 'data-id': ing.id },

@@ -1,5 +1,5 @@
 import { SITE_COPY, STEPS } from '../data/copy';
-import { advance, newRound, PHASES, type RoundState } from '../logic/round';
+import { advance, drawCustomer, newRound, type CustomerBag, PHASES, type RoundState } from '../logic/round';
 import { emptySave, loadSave, writeSave, type SaveData } from '../logic/save';
 import { h } from './dom';
 import { guideReset } from './guide';
@@ -66,8 +66,12 @@ export function next() {
   go(app.round.phase);
 }
 
+let customerBag: CustomerBag | null = null;
+
 export function startRound() {
-  app.round = newRound(rng);
+  const drawn = drawCustomer(customerBag ?? { bag: [], last: app.round.customerId }, rng);
+  customerBag = drawn.state;
+  app.round = newRound(rng, drawn.id);
   go('order');
 }
 

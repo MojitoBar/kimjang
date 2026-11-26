@@ -5,6 +5,9 @@ import {
   addIngredient,
   advance,
   canAddIngredient,
+  drawCustomer,
+  shuffle,
+  type CustomerBag,
   newRound,
   removeIngredient,
   setAging,
@@ -86,5 +89,55 @@ describe('round', () => {
     expect(seen).toEqual(['order', 'salt', 'mix', 'rub', 'age', 'result']);
     expect(s.result?.score).toBeGreaterThanOrEqual(90);
     expect(advance(s, () => 0)).toBe(s);
+  });
+});
+
+describe('선반 섞기·손님 주머니', () => {
+  const seeded = (seed: number) => () => {
+    seed = (seed * 1664525 + 1013904223) % 4294967296;
+    return seed / 4294967296;
+  };
+
+  it('섞어도 재료 전부가 빠짐·중복 없이 그대로고 원본은 안 바뀐다', () => {
+    const ids = INGREDIENTS.map((i) => i.id);
+    const copy = [...ids];
+    const out = shuffle(ids, seeded(7));
+    expect(out).toHaveLength(ids.length);
+    expect(new Set(out).size).toBe(ids.length);
+    expect([...out].sort()).toEqual([...ids].sort());
+    expect(ids).toEqual(copy);
+  });
+
+  it('새 판마다 선반 순서가 정해지고 재료 수는 같다', () => {
+    const a = newRound(seeded(1)).shelf;
+    const b = newRound(seeded(2)).shelf;
+    expect(a).toHaveLength(INGREDIENTS.length);
+    expect(a).not.toEqual(b);
+  });
+
+  it('연속 100판에서 같은 손님이 연달아 나오지 않는다', () => {
+    const rng = seeded(42);
+    let st: CustomerBag = { bag: [], last: null };
+    let prev: string | null = null;
+    for (let i = 0; i < 100; i++) {
+      const d = drawCustomer(st, rng);
+      expect(d.id).not.toBe(prev);
+      prev = d.id;
+      st = d.state;
+    }
+  });
+
+  it('한 바퀴(손님 수만큼) 안에 모든 손님이 한 번씩 나온다', () => {
+    for (let seed = 1; seed <= 20; seed++) {
+      const rng = seeded(seed);
+      let st: CustomerBag = { bag: [], last: null };
+      const seen: string[] = [];
+      for (let i = 0; i < CUSTOMERS.length; i++) {
+        const d = drawCustomer(st, rng);
+        seen.push(d.id);
+        st = d.state;
+      }
+      expect(new Set(seen).size).toBe(CUSTOMERS.length);
+    }
   });
 });

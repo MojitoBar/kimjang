@@ -76,6 +76,8 @@ export function zoneMarks(range: [number, number], label: string) {
 
 export interface Pointer {
   clear(): void;
+  /** 대상이 움직였을 때 위치를 다시 잡는다. show가 false면 숨긴다. */
+  update(show?: boolean): void;
 }
 /** target을 가리키는 깜빡이는 화살표. 누를 곳을 selector로 data-points에 적는다. */
 export function pointAt(screen: HTMLElement, target: HTMLElement, selector: string, label: string, inset = 4): Pointer {
@@ -92,7 +94,13 @@ export function pointAt(screen: HTMLElement, target: HTMLElement, selector: stri
     el.style.top = `${Math.round(r.y + inset)}px`;
   };
   place();
-  return { clear: () => el.remove() };
+  return {
+    clear: () => el.remove(),
+    update: (show = true) => {
+      el.style.visibility = show ? '' : 'hidden';
+      if (show) place();
+    },
+  };
 }
 
 /** 게임 방법 창. start가 있으면 그 버튼으로 바로 게임을 시작한다. */
