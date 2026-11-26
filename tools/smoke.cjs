@@ -10,7 +10,7 @@ async function run(browser, vp) {
   const errors = [];
   page.on('console', (m) => { if (m.type() === 'error' && !/Failed to load resource|ERR_|fonts/.test(m.text())) errors.push(m.text()); });
   page.on('pageerror', (e) => errors.push(String(e)));
-  const shot = (n) => page.screenshot({ path: `screenshots/k6-${w}-${n}.png` });
+  const shot = (n) => page.screenshot({ path: `screenshots/k8-${w}-${n}.png` });
   const audit = async (name, btnSel) => {
     const r = await page.evaluate((sel) => {
       const de = document.documentElement;
@@ -209,7 +209,7 @@ async function guideFlow(browser, vp) {
   const errors = [];
   page.on('console', (m) => { if (m.type() === 'error' && !/Failed to load resource|ERR_|fonts/.test(m.text())) errors.push(m.text()); });
   page.on('pageerror', (e) => errors.push(String(e)));
-  const shot = (n) => page.screenshot({ path: `screenshots/k6-${w}-${n}.png` });
+  const shot = (n) => page.screenshot({ path: `screenshots/k8-${w}-${n}.png` });
   const toTitle = async (url) => {
     await page.goto(url);
     await page.waitForSelector('.loading'); await page.click('.loading'); await page.waitForSelector('.title');
@@ -378,7 +378,7 @@ async function title2x(browser) {
   await page.waitForSelector('.loading'); await page.click('.loading'); await page.waitForSelector('.title');
   await page.evaluate(() => document.fonts.ready);
   await page.waitForTimeout(900);
-  await page.screenshot({ path: 'screenshots/k6-390-title@2x.png' });
+  await page.screenshot({ path: 'screenshots/k8-390-title@2x.png' });
   const t = await page.evaluate(() => { const e = document.querySelector('.title-name, .title-logo'); const r = e.getBoundingClientRect(); const s = document.querySelector('.stage').getBoundingClientRect(); const b = document.querySelector('.title-art .burst').getBoundingClientRect(); const a = document.querySelector('.title-art').getBoundingClientRect(); return { fit: r.left >= s.left && r.right <= s.right && e.scrollWidth <= e.clientWidth + 1, lines: e.tagName === 'IMG' ? 1 : Math.round(r.height / parseFloat(getComputedStyle(e).lineHeight)), burstIn: b.left >= a.left && b.right <= a.right && b.top >= a.top && b.bottom <= a.bottom }; });
   check(t.fit && t.lines === 1, `390 타이틀 제목 한 줄·폭 안 (${t.lines}줄)`);
   check(t.burstIn, '390 since 어제 딱지가 그림 틀 안');

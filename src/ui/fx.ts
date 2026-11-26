@@ -1,7 +1,7 @@
 export function pop(el: Element, scale = 1.25) {
   el.animate(
     [{ transform: 'scale(0.6)' }, { transform: `scale(${scale})` }, { transform: 'scale(0.92)' }, { transform: 'scale(1)' }],
-    { duration: 360, easing: 'steps(4, jump-none)' },
+    { duration: 360, easing: 'ease-out' },
   );
 }
 
@@ -35,7 +35,7 @@ export function sparks(root: HTMLElement, x: number, y: number, n = 8) {
         { transform: 'translate(0,0) scale(1)', opacity: 1 },
         { transform: `translate(${Math.cos(a) * d}px, ${Math.sin(a) * d}px) scale(0.3)`, opacity: 0 },
       ],
-      { duration: 480, easing: 'steps(4, jump-none)' },
+      { duration: 480, easing: 'ease-out' },
     ).onfinish = () => s.remove();
   }
 }
@@ -53,7 +53,7 @@ export function grain(root: HTMLElement, x: number, y: number, fall: number) {
       { transform: 'translate(0,0)', opacity: 1 },
       { transform: `translate(${dx}px, ${fall}px)`, opacity: 0.2 },
     ],
-    { duration: 520 + Math.random() * 200, easing: 'steps(5, jump-none)' },
+    { duration: 520 + Math.random() * 200, easing: 'ease-out' },
   ).onfinish = () => s.remove();
 }
 
@@ -101,7 +101,7 @@ export function splat(root: HTMLElement, x: number, y: number, n = 4) {
         { transform: 'translate(0,0) rotate(0)', opacity: 1 },
         { transform: `translate(${Math.cos(a) * d}px, ${Math.sin(a) * d - 14}px) rotate(${Math.random() * 180}deg)`, opacity: 0 },
       ],
-      { duration: 420 + Math.random() * 160, easing: 'steps(4, jump-none)' },
+      { duration: 420 + Math.random() * 160, easing: 'ease-out' },
     ).onfinish = () => s.remove();
   }
 }

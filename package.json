@@ -16,6 +16,7 @@
     "vitest": "^5.1.2"
   },
   "dependencies": {
-    "galmuri": "^2.40.3"
+    "@fontsource/black-and-white-picture": "^5.3.0",
+    "@fontsource/nanum-gothic": "^5.3.0"
   }
 }
